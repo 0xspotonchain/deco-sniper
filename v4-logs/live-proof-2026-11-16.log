@@ -1,0 +1,18 @@
+[2026-11-16T11:41:07.732Z] *** LIVE MODE *** — real testnet transactions will be broadcast. Ctrl-C to stop.
+[2026-11-16T11:41:07.931Z] Robinhood Chain Testnet: live mode — signer loaded (burner address verified, key never logged)
+[2026-11-16T11:41:08.617Z] Robinhood Chain Testnet: v4 watcher starting at block 154059431
+[2026-11-16T11:41:08.819Z] Robinhood Chain Testnet: burner native balance: 0.005103457770995738 ETH
+[2026-11-16T11:41:09.335Z] Robinhood Chain Testnet: pool found for 0x5f1dF574… — buying
+[2026-11-16T11:41:09.346Z]   BUY 0x5f1dF574015C9D044b4C9Ef658cD55aFcC13D783 on Robinhood Chain Testnet for 0.0005 ETH
+[2026-11-16T11:41:11.136Z]   [live] buy 0x5f1dF574…: sent 0xbb654db544b24de3b10d8ff945ce3332c6d59fdf3925b3be9d4ffb1b464b55ab — waiting for receipt…
+[2026-11-16T11:41:12.529Z]   [live] buy 0x5f1dF574…: confirmed in block 154059449 (status 1, gas 116107)
+[2026-11-16T11:41:12.739Z]   buy: received 13426.322985672469572906 0x5f1dF574… (quoted 13426.322985672469572612)
+[2026-11-16T11:41:13.216Z]   position opened: entry price 0.000000045950991814 (quote per token)
+[2026-11-16T11:41:44.013Z]   position 0x5f1dF574…: +0.00% held 31s
+[2026-11-16T11:42:14.789Z]   position 0x5f1dF574…: +0.00% held 62s
+[2026-11-16T11:42:45.635Z]   position 0x5f1dF574…: +0.00% held 92s
+[2026-11-16T11:43:16.614Z]   position 0x5f1dF574…: +0.00% held 123s
+[2026-11-16T11:43:16.615Z]   SELL 0x5f1dF574015C9D044b4C9Ef658cD55aFcC13D783 on Robinhood Chain Testnet — max hold 120s reached
+[2026-11-16T11:43:16.914Z]   live: selling position size 13426.322985672469572906 (wallet balance 933496.32298567246958236)
+[2026-11-16T11:43:18.710Z]   [live] sell 0x5f1dF574… (max hold 120s reached): sent 0x0ca08b1c3670c3dc3dd9fec3c572f4fc7cd5d97e1c89acb7d07550570dca1d5f — waiting for receipt…
+[2026-11-16T11:43:19.640Z]   [live] sell 0x5f1dF574… (max hold 120s reached): confirmed in block 154060097 (status 1, gas 133490)

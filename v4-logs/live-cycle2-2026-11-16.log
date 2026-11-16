@@ -1,0 +1,24 @@
+[2026-11-16T11:43:56.444Z] *** LIVE MODE *** — real testnet transactions will be broadcast. Ctrl-C to stop.
+[2026-11-16T11:43:56.617Z] Robinhood Chain Testnet: live mode — signer loaded (burner address verified, key never logged)
+[2026-11-16T11:43:57.327Z] Robinhood Chain Testnet: v4 watcher starting at block 154060260
+[2026-11-16T11:43:57.560Z] Robinhood Chain Testnet: burner native balance: 0.005098252735517605 ETH
+[2026-11-16T11:43:58.062Z] Robinhood Chain Testnet: pool found for 0x5f1dF574… — buying
+[2026-11-16T11:43:58.063Z]   BUY 0x5f1dF574015C9D044b4C9Ef658cD55aFcC13D783 on Robinhood Chain Testnet for 0.001 ETH
+[2026-11-16T11:43:59.919Z]   [live] buy 0x5f1dF574…: sent 0x832bbf505ed31a3ada31b2d45e7e0c23a5db69f7d71aea9867efb1040791aa9c — waiting for receipt…
+[2026-11-16T11:44:00.848Z]   [live] buy 0x5f1dF574…: confirmed in block 154060276 (status 1, gas 104720)
+[2026-11-16T11:44:01.083Z]   buy: received 22505.683874282085782872 0x5f1dF574… (quoted 22505.683874282109825958)
+[2026-11-16T11:44:01.541Z]   position opened: entry price 0.000000065340761388 (quote per token)
+[2026-11-16T11:44:32.234Z]   position 0x5f1dF574…: +0.00% held 31s
+[2026-11-16T11:45:02.884Z]   position 0x5f1dF574…: +0.00% held 61s
+[2026-11-16T11:45:33.708Z]   position 0x5f1dF574…: +0.00% held 92s
+[2026-11-16T11:46:04.367Z]   position 0x5f1dF574…: +0.00% held 123s
+[2026-11-16T11:46:34.949Z]   position 0x5f1dF574…: +0.00% held 153s
+[2026-11-16T11:47:05.862Z]   position 0x5f1dF574…: +0.00% held 184s
+[2026-11-16T11:47:36.715Z]   position 0x5f1dF574…: +0.00% held 215s
+[2026-11-16T11:48:07.955Z]   position 0x5f1dF574…: +0.00% held 246s
+[2026-11-16T11:48:39.119Z]   position 0x5f1dF574…: +0.00% held 278s
+[2026-11-16T11:49:09.883Z]   position 0x5f1dF574…: +0.00% held 308s
+[2026-11-16T11:49:09.912Z]   SELL 0x5f1dF574015C9D044b4C9Ef658cD55aFcC13D783 on Robinhood Chain Testnet — max hold 300s reached
+[2026-11-16T11:49:10.146Z]   live: selling position size 22505.683874282085782872 (wallet balance 942575.683874282085792326)
+[2026-11-16T11:49:12.027Z]   [live] sell 0x5f1dF574… (max hold 300s reached): sent 0x538a71fade7bca1a6c835df1a9c3ba2ebe2aac7d74ae9033a8b9819418d95ddd — waiting for receipt…
+[2026-11-16T11:49:13.911Z]   [live] sell 0x5f1dF574… (max hold 300s reached): confirmed in block 154061669 (status 1, gas 122283)
