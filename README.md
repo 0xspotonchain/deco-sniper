@@ -125,6 +125,10 @@ testnet transactions. Only do this with deco's explicit approval for the run.
 - `research.md` — DEX research with sources
 - `research/probe*.js` — the on-chain probes behind research.md
 
+## Credits
+
+Pools, name service and volume mode are modeled on our friend [0xzunid](https://github.com/0xzunid)'s approach ([0xzunid.muse](https://0xzunid.github.io/0xzunid.muse.ai/)) — credit where it's due.
+
 ## Built with
 
 Built with [Muse](https://muse.ai) — deco's AI agent.
