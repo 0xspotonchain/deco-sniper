@@ -103,13 +103,55 @@ function priceToken1InToken0(sqrtPriceX96, dec0, dec1) {
   return human;
 }
 
-// --- Quoting (via the v4 Quoter; reverts on uninitialized pools) ---
-async function quoteExactInputSingle(chain, provider, token, zeroForOne, amountIn, fee, tickSpacing, hooks) {
-  const key = poolKeyFor(chain, token, fee, tickSpacing, hooks);
-  const quoter = new ethers.Contract(chain.dex.quoter, QUOTER_ABI, provider);
-  const [amountOut] = await quoter.quoteExactInputSingle.staticCall(
-    poolKeyTuple(key), zeroForOne, amountIn, '0x');
+// --- Quoting (manual sqrtPrice math — NOT the on-chain Quoter) ---
+// The Quoter at chain.dex.quoter (0x8dc1…) is UNUSABLE on Robinhood testnet:
+// the address holds a non-quoter contract (10 selectors, no quote function
+// at all — verified 2026-11-16 by dispatcher inspection; every quote call
+// reverts with empty returndata). Uniswap's own docs warn not to assume the
+// same v4 addresses across chains. So quotes are computed locally from
+// StateView (sqrtPrice + liquidity) with exact UniV3 sqrtPrice math.
+// ASSUMPTION: constant liquidity across the swap — exact for full-range
+// single-position pools (our DECO pool). Do NOT use blindly on
+// multi-position pools (a swap crossing an initialized tick would change L
+// mid-swap and the quote would be wrong).
+const Q96 = 2n ** 96n;
+
+function ceilDiv(a, b) {
+  return (a + b - 1n) / b;
+}
+
+// Exact-input quote from pool state. Rounding is conservative (output
+// slightly under-estimated), so a minOut derived from it never exceeds the
+// actual swap output.
+async function quoteExactInputSingleManual(chain, provider, token, zeroForOne, amountIn, fee, tickSpacing, hooks) {
+  const pool = await watchPool(chain, provider, token, fee, tickSpacing, hooks);
+  if (!pool) throw new Error('quote: pool not initialized');
+  if (pool.liquidity === 0n) throw new Error('quote: pool has no liquidity');
+  const sqrtP = pool.sqrtPriceX96;
+  const L = pool.liquidity;
+  const amountInAfterFee = (amountIn * BigInt(1000000 - fee)) / 1000000n;
+  if (amountInAfterFee === 0n) throw new Error('quote: amount after fee is 0');
+  let amountOut;
+  if (zeroForOne) {
+    // Token0 in, token1 out. sqrtP falls: sqrtP' = (L*sqrtP) / (L + in*sqrtP/Q96).
+    const denom = L + (amountInAfterFee * sqrtP) / Q96;
+    const sqrtPNext = ceilDiv(L * sqrtP, denom); // round UP -> output conservative
+    if (sqrtPNext >= sqrtP) throw new Error('quote: price did not move (amount too small?)');
+    amountOut = (L * (sqrtP - sqrtPNext)) / Q96; // round DOWN -> conservative
+  } else {
+    // Token1 in, token0 out. sqrtP rises: sqrtP' = sqrtP + in*Q96/L.
+    const sqrtPNext = sqrtP + (amountInAfterFee * Q96) / L; // round DOWN -> conservative
+    if (sqrtPNext <= sqrtP) throw new Error('quote: price did not move (amount too small?)');
+    amountOut = (L * Q96 * (sqrtPNext - sqrtP)) / (sqrtP * sqrtPNext); // round DOWN
+  }
+  if (amountOut <= 0n) throw new Error('quote: output is 0');
   return amountOut;
+}
+
+// Public quote entry point (manual math; see above). Same signature as the
+// old Quoter-based version so callers are unchanged.
+async function quoteExactInputSingle(chain, provider, token, zeroForOne, amountIn, fee, tickSpacing, hooks) {
+  return quoteExactInputSingleManual(chain, provider, token, zeroForOne, amountIn, fee, tickSpacing, hooks);
 }
 
 // --- Trade builders (UniversalRouter V4_SWAP) ---
@@ -140,7 +182,12 @@ function encodeV4Swap(key, zeroForOne, amountIn, amountOutMin) {
   const params = [
     coder.encode(
       ['(address,address,uint24,int24,address)', 'bool', 'uint128', 'uint128', 'bytes'],
-      [poolKeyTuple(key), zeroForOne, amountIn, amountOutMin, '0x']),
+      // hookData '0x00', NOT '0x': the Robinhood testnet router reverts with
+      // SliceOutOfBounds (0x3b99b53d) on EMPTY hookData (verified 2026-11-16:
+      // swap-only probe with '0x' -> SliceOutOfBounds, with '0x00' -> swap
+      // executed, CurrencyNotSettled as expected). Our pool has hooks = 0x0,
+      // so hookData is never read by any hook — the byte is inert.
+      [poolKeyTuple(key), zeroForOne, amountIn, amountOutMin, '0x00']),
     coder.encode(['address', 'uint256'], [currencyIn, amountIn]),
     coder.encode(['address', 'uint256'], [currencyOut, amountOutMin]),
   ];
@@ -154,9 +201,7 @@ async function buildBuyTx(chain, signerOrProvider, token, amountIn, slippageBps,
   const provider = signerOrProvider.provider ?? signerOrProvider;
   // zeroForOne = paying currency0. Buy pays the quote asset.
   const zeroForOne = key.currency0.toLowerCase() === chain.dex.quoteToken.toLowerCase();
-  const quoter = new ethers.Contract(chain.dex.quoter, QUOTER_ABI, provider);
-  const [expectedOut] = await quoter.quoteExactInputSingle.staticCall(
-    poolKeyTuple(key), zeroForOne, amountIn, '0x');
+  const expectedOut = await quoteExactInputSingle(chain, provider, token, zeroForOne, amountIn, fee, tickSpacing, hooks);
   const amountOutMin = withSlippage(expectedOut, slippageBps);
   const { commands, inputs } = encodeV4Swap(key, zeroForOne, amountIn, amountOutMin);
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
@@ -173,9 +218,7 @@ async function buildSellTx(chain, signerOrProvider, token, amountIn, slippageBps
   const provider = signerOrProvider.provider ?? signerOrProvider;
   // Sell pays DECO: zeroForOne = DECO is currency0.
   const zeroForOne = key.currency0.toLowerCase() === token.toLowerCase();
-  const quoter = new ethers.Contract(chain.dex.quoter, QUOTER_ABI, provider);
-  const [expectedOut] = await quoter.quoteExactInputSingle.staticCall(
-    poolKeyTuple(key), zeroForOne, amountIn, '0x');
+  const expectedOut = await quoteExactInputSingle(chain, provider, token, zeroForOne, amountIn, fee, tickSpacing, hooks);
   const amountOutMin = withSlippage(expectedOut, slippageBps);
   const { commands, inputs } = encodeV4Swap(key, zeroForOne, amountIn, amountOutMin);
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
@@ -200,8 +243,8 @@ async function permit2Allowance(chain, provider, token, owner) {
 }
 
 module.exports = {
-  poolKeyFor, poolId, scanNewPools, watchPool, priceToken1InToken0,
-  quoteExactInputSingle, buildBuyTx, buildSellTx, buildPermit2ApproveTx,
+  poolKeyFor, poolKeyTuple, poolId, scanNewPools, watchPool, priceToken1InToken0,
+  quoteExactInputSingle, quoteExactInputSingleManual, buildBuyTx, buildSellTx, buildPermit2ApproveTx,
   permit2Allowance, encodeV4Swap,
   POOL_MANAGER_ABI, STATE_VIEW_ABI, QUOTER_ABI, UNIVERSAL_ROUTER_ABI,
 };
