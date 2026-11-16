@@ -124,3 +124,7 @@ testnet transactions. Only do this with deco's explicit approval for the run.
 - `dex/v4.js` — Uniswap V4 watcher/quotes/UniversalRouter trades
 - `research.md` — DEX research with sources
 - `research/probe*.js` — the on-chain probes behind research.md
+
+## Built with
+
+Built with [Muse](https://muse.ai) — deco's AI agent.
