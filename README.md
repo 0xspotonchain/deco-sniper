@@ -66,6 +66,47 @@ Options: `--chain arc|robinhood|litvm|all`, `--mode target|watch`,
   again if the pool is still there — this is the spam buy/sell loop, bounded
   by the per-run spend cap.
 
+## Volume mode (`volume.js`)
+
+Buy-then-sell-back rounds against deco's OWN SimpleAMM pools (see the
+deco-tokens repo) — the volume test, modeled on our friend
+[0xzunid](https://0xzunid.github.io/0xzunid.muse.ai/)'s approach. One round =
+1 buy + 1 sell (2 txs). Round size: 0.1 USDC on Arc, 0.0001 ETH on
+Robinhood, 0.0001 zkLTC on LitVM, 0.0001 VELA on Velana.
+
+First run (2026-11-16): 1,000 rounds/chain on Arc, Robinhood and LitVM —
+6,007 txs total, all verified on-chain. Velana's 819-round run is still in
+progress. Daily totals + first/last tx links in `VOLUMES.md`; per-chain
+summaries in `volume-summaries/`; the full incident + fix record (including
+a cleanup bug that dumped 990,000 DECO and the buy-back that restored it)
+in `volume-proof-2026-11-16.md`.
+
+Daily schedule: 100 rounds/chain/day from Tue 2026-11-17, ~11:11 GMT+7,
+chains sequential, Arc gas pre-check (skip Arc if gas > 100 gwei).
+
+```
+node volume.js --chain=arc --rounds=100 --live        # live (needs --live)
+node volume.js --chain=robinhood --rounds=5           # dry-run (default)
+```
+
+## Uniswap v4 pool (Robinhood) — live position trades
+
+A real Uniswap v4 DECO/ETH pool on Robinhood Testnet — pool ID
+`0x0c6d73c11e075cd18082b5aae55828c76a3d2b31f2f3e06558d75bd58d0363f7`
+(fee 3000, tickSpacing 60, full-range), seeded 0.0021 ETH + 70,000 DECO.
+The position-mode sniper (`sniper.js`) traded it live: 2 full buy→sell
+cycles, 4 txs confirmed. Details in `robinhood-pool-results.json` and
+`v4-logs/`.
+
+Two v4 gotchas on Robinhood testnet, both fixed in `dex/v4.js`:
+- The docs-listed Quoter address is NOT a Quoter contract — the sniper uses
+  a manual StateView-based quote (`quoteExactInputSingleManual`).
+- The UniversalRouter reverts on empty hookData — swaps encode `0x00`.
+
+`create-robinhood-pool.js` creates + seeds the pool; `sell-deco.js` sells an
+exact DECO amount (dry-run default); `check-state.js` prints pool + burner
+state; `verify-v4-approvals.js` checks the Permit2 approvals.
+
 ## Dry-run vs live
 
 **Dry-run (default)** — the bot logs exactly what it WOULD send
