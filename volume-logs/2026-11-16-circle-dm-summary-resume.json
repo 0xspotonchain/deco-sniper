@@ -1,0 +1,28 @@
+{
+  "chain": "arc-circle",
+  "pool": "0x53661d12527e02019d991d2f24bf4b6661a96ba7",
+  "roundsPlanned": 92,
+  "startRound": 9,
+  "roundsCompleted": 92,
+  "roundsFailed": 0,
+  "txs": 184,
+  "boughtUsdc": "9200000",
+  "soldUsdc": "9242825",
+  "boughtDm": "9128074653462486371873",
+  "soldDm": "9128074653462486371873",
+  "networkFees": "963693486244081426",
+  "firstTx": "0xc47ba218d95406cf93f40028022d35724dd36f8d5d03e96dab0029c9ada35f61",
+  "lastTx": "0x988cb369022d1698ee0386d5ae08ac9e3f73297b139024aa919b9eee99b7c982",
+  "startedAt": "2026-11-16T15:20:49.171Z",
+  "startDm": "99999999989400000000000000000000",
+  "startUsdc": "69994654",
+  "endDm": "99999999989301637086429331524851",
+  "endUsdc": "70037479",
+  "dmDelta": "-98362913570668475149",
+  "usdcDelta": "42825",
+  "reservesEnd": {
+    "deco": "10098362913570668475149",
+    "base": "9962521"
+  },
+  "endedAt": "2026-11-16T16:09:21.301Z"
+}
