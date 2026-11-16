@@ -84,6 +84,16 @@ logs in `volume-logs/`; the full incident + fix record (including a
 cleanup bug that dumped 990,000 DECO and the buy-back that restored it)
 in `volume-proof-2026-11-16.md`.
 
+Circle wallet run (2026-11-16): the same volume discipline against the
+Circle wallet's own DM/USDC pool on Arc — but the Circle wallet is a
+smart-contract account, so every write goes through `circle wallet
+execute` (bundler userOp) instead of a keystore signature.
+`volume-circle.js`: 100/100 rounds, 201 txs on-chain, net +0.038073 USDC
+(one round double-sold when the CLI reported a landed sell as failed —
+both sells verified via Swap events; the runner now re-checks on-chain
+state before any retry). Log: `volume-logs/2026-11-16-circle-dm.jsonl`.
+Grand total with the burner runs: 4,100 rounds, 8,208 txs.
+
 Daily schedule: 100 rounds/chain/day from Tue 2026-11-17, ~11:11 GMT+7,
 chains sequential, Arc gas pre-check (skip Arc if gas > 100 gwei) —
 800 txs/day across 4 chains.
