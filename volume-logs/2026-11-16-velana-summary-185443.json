@@ -1,0 +1,29 @@
+{
+  "chain": "velana",
+  "chainId": 484148,
+  "roundsRequested": 296,
+  "roundsCompleted": 296,
+  "roundsFailed": 0,
+  "txsSent": 592,
+  "boughtTotal": "29600000000000000",
+  "soldTotal": "29433871956742980",
+  "feesPaid": "166128043257020",
+  "decoBoughtTotal": "187566950032452165757992",
+  "decoSoldTotal": "187566950032452165757992",
+  "gasTotalNative": "239284976",
+  "baseSymbol": "VELA",
+  "baseDecimals": 18,
+  "gasSymbol": "VELA",
+  "stoppedReason": "completed",
+  "logFile": "/home/hatch/workspace/sniper/volume-logs/2026-11-16-velana.jsonl",
+  "startedAt": "2026-11-16T11:54:43.143Z",
+  "finishedAt": "2026-11-16T12:44:06.645Z",
+  "formatted": {
+    "boughtTotal": "0.0296 VELA",
+    "soldTotal": "0.02943387195674298 VELA",
+    "feesPaid": "0.00016612804325702 VELA",
+    "decoBoughtTotal": "187566.950032452165757992 DECO",
+    "decoSoldTotal": "187566.950032452165757992 DECO",
+    "gasTotalNative": "0.000000000239284976 VELA"
+  }
+}
