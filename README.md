@@ -1,7 +1,7 @@
-# Testnet sniper — Arc / Robinhood / LitVM
+# Testnet sniper — Arc / Robinhood / LitVM / Velana
 
 Buy/sell sniper bot for deco's multichain burner wallet
-(`0xF1d949ed9B0b62508203AB0B91Bf01E73309Ad31`) on three EVM testnets.
+(`0xF1d949ed9B0b62508203AB0B91Bf01E73309Ad31`) on four EVM testnets.
 **Testnets only. Dry-run by default. No live trades without explicit approval.**
 
 ## What each chain actually supports
@@ -10,13 +10,16 @@ See `research.md` for the full verified findings. Short version:
 
 | Chain | DEX | Trade route | Status |
 |---|---|---|---|
-| Robinhood Testnet (46630) | Uniswap v4 (de-facto official stack) | UniversalRouter V4_SWAP | ✅ Ready once a DECO pool exists |
-| LitVM LiteForge (4441) | Uniswap V2 **fork** (852 pairs) | Router swaps | ✅ Ready once a DECO pool exists |
+| Robinhood Testnet (46630) | Uniswap v4 (de-facto official stack) | UniversalRouter V4_SWAP | ✅ Live — real v4 DECO/ETH pool, traded 2 cycles |
+| LitVM LiteForge (4441) | Uniswap V2 **fork** (852 pairs) | Router swaps | ✅ Ready once a DECO pair exists |
 | Arc Testnet (5042002) | Uniswap v4 PoolManager, **no UniversalRouter** | — | ⚠️ Watching works; live trading BLOCKED until a v4 router is deployed/verified |
+| Velana Testnet (484148) | Own SimpleAMM pool (no Uniswap) | `volume.js` rounds | ✅ Live — 1,000/1,000 first run |
 
-No canonical Uniswap V2 or V3 exists on any of the three testnets. No DECO
-pool exists yet on any chain (verified 2026-11-16) — the bot watches and
-reports "no pool yet" until the pool-creation step lands.
+No canonical Uniswap V2 or V3 exists on any of the four testnets. DECO
+pools exist on all four chains now: own SimpleAMM pools (see the
+deco-tokens repo) plus a real Uniswap v4 DECO/ETH pool on Robinhood. The
+volume sniper trades the SimpleAMM pools daily; the position-mode sniper
+has traded the v4 pool live (see below).
 
 ## Install
 
@@ -34,7 +37,7 @@ access: prefix commands with `NODE_USE_ENV_PROXY=1`.
 # Dry-run test harness (31 checks, no broadcasts, no keystore access)
 NODE_USE_ENV_PROXY=1 node dryrun.js
 
-# Watch for the DECO pool on all three chains, one cycle, dry-run
+# Watch for the DECO pool on all four chains, one cycle, dry-run
 NODE_USE_ENV_PROXY=1 node sniper.js --chain all --mode target --once
 
 # Watch for ANY new pair on LitVM for 5 minutes, dry-run
@@ -44,7 +47,7 @@ NODE_USE_ENV_PROXY=1 node sniper.js --chain litvm --mode watch --duration-second
 NODE_USE_ENV_PROXY=1 node sniper.js --chain robinhood --mode target --token 0x...
 ```
 
-Options: `--chain arc|robinhood|litvm|all`, `--mode target|watch`,
+Options: `--chain arc|robinhood|litvm|velana|all`, `--mode target|watch`,
 `--token 0x…`, `--once`, `--auto-buy` (watch mode), `--duration-seconds`,
 `--buy-amount`, `--tp`, `--sl`, `--max-hold`, `--slippage-bps`,
 `--poll-seconds`. See `node sniper.js --help`.
@@ -74,15 +77,16 @@ deco-tokens repo) — the volume test, modeled on our friend
 1 buy + 1 sell (2 txs). Round size: 0.1 USDC on Arc, 0.0001 ETH on
 Robinhood, 0.0001 zkLTC on LitVM, 0.0001 VELA on Velana.
 
-First run (2026-11-16): 1,000 rounds/chain on Arc, Robinhood and LitVM —
-6,007 txs total, all verified on-chain. Velana's 819-round run is still in
-progress. Daily totals + first/last tx links in `VOLUMES.md`; per-chain
-summaries in `volume-summaries/`; the full incident + fix record (including
-a cleanup bug that dumped 990,000 DECO and the buy-back that restored it)
+First run (2026-11-16): 1,000 rounds/chain on all four chains — 8,007
+txs total, all verified on-chain. Daily totals + first/last tx links in
+`VOLUMES.md`; per-chain summaries in `volume-summaries/`; full per-tx
+logs in `volume-logs/`; the full incident + fix record (including a
+cleanup bug that dumped 990,000 DECO and the buy-back that restored it)
 in `volume-proof-2026-11-16.md`.
 
 Daily schedule: 100 rounds/chain/day from Tue 2026-11-17, ~11:11 GMT+7,
-chains sequential, Arc gas pre-check (skip Arc if gas > 100 gwei).
+chains sequential, Arc gas pre-check (skip Arc if gas > 100 gwei) —
+800 txs/day across 4 chains.
 
 ```
 node volume.js --chain=arc --rounds=100 --live        # live (needs --live)
@@ -126,8 +130,8 @@ testnet transactions. Only do this with deco's explicit approval for the run.
 
 ## Safety
 
-- **Hard testnet-only guard**: any chainId outside `{5042002, 46630, 4441}`
-  is refused before any signing. The RPC's reported chainId is verified
+- **Hard testnet-only guard**: any chainId outside `{5042002, 46630, 4441,
+  484148}` is refused before any signing. The RPC's reported chainId is verified
   against the chain config on every run.
 - **No keys in logs**: the seed/private key is never printed, logged, or
   written. Dry-run never reads the keystore at all.
@@ -138,29 +142,36 @@ testnet transactions. Only do this with deco's explicit approval for the run.
 
 ## What a live test needs (deco's approval required)
 
-1. **DECO pools must exist first** (separate pool-creation step):
+1. **Pools** — the Robinhood v4 DECO/ETH pool already exists (see above);
+   the LitVM V2 pair and the Arc router are still open:
    - LitVM: `router.addLiquidityETH` (DECO + zkLTC) — one call, creates the
      pair and seeds it. Needs DECO + a little zkLTC from the burner.
-   - Robinhood: initialize the v4 DECO/ETH pool (fee 3000, tickSpacing 60)
-     via PositionManager + add liquidity. Needs DECO + test ETH.
+   - Robinhood: v4 pool live since Nov 16, 18:28 GMT+7 (fee 3000,
+     tickSpacing 60) — done, see above.
    - Arc: initialize the v4 DECO/USDC-view pool + **deploy/verify a swap
      router first** (no UniversalRouter on Arc testnet).
 2. **Then a live test run**: e.g. `node sniper.js --chain litvm --mode target
    --live --buy-amount 0.001 --max-hold 300` — one buy of 0.001 zkLTC and a
    time-based sell after 5 min. Expected cost: ~0.001 zkLTC + gas
    (~150k gas per swap). Same shape on Robinhood (0.001 test ETH).
-3. **Verify the v4 encoding with a tiny live swap first**: the
-   UniversalRouter V4_SWAP calldata is built from the documented action
-   encoding and round-trip tested, but it has not executed on-chain yet —
-   the first live v4 trade should be a minimal amount.
+3. **Verify the v4 encoding with a tiny live swap first** — done: the
+   position-mode sniper has traded the Robinhood v4 pool live (2 full
+   buy→sell cycles, 4 txs confirmed). The UniversalRouter V4_SWAP
+   encoding is proven; keep new live tests small anyway.
 
 ## Files
 
 - `sniper.js` — main bot (watch → buy → manage → sell)
 - `dryrun.js` — test harness (31 checks)
+- `volume.js` — volume mode: buy-then-sell-back rounds vs the own
+  SimpleAMM pools (Arc, Robinhood, LitVM, Velana)
 - `config.js` — chains, DEX addresses, trading params, live gate
 - `provider.js` — RPC providers (browser UA) + chainId guard
 - `keystore.js` — VM keystore decrypt (live mode only, in-memory)
+- `amm-addresses.json` — SimpleAMM pool addresses per chain
+- `VOLUMES.md` — daily volume totals + first/last tx links
+- `volume-summaries/` — per-chain run summaries (JSON)
+- `volume-logs/` — full per-tx logs (jsonl, one line per tx)
 - `dex/v2.js` — Uniswap V2 watcher/quotes/trades (LitVM)
 - `dex/v4.js` — Uniswap V4 watcher/quotes/UniversalRouter trades
 - `research.md` — DEX research with sources
