@@ -417,6 +417,28 @@ async function retryAsync(fn, label) {
   throw lastErr;
 }
 
+// Manual receipt polling. DO NOT use sent.wait(): ethers v6's
+// waitForTransaction runs an unguarded `await getBlockNumber()` inside a
+// `new Promise(async ...)` executor, so a transient RPC 502 there becomes
+// an unhandled rejection that kills the whole process (Velana part 3,
+// 2026-11-16 ~18:35 WIB: round 33's sell had landed, but the 502 during
+// .wait() crashed node before the sell was logged). Polling
+// getTransactionReceipt through retryAsync keeps 502s on the normal await
+// path, where runRound's try/catch turns them into a failed round instead
+// of a dead process. A timeout throws through the same normal path.
+async function waitForReceipt(provider, sent, label, { pollMs = 1000, timeoutMs = 180000 } = {}) {
+  const start = Date.now();
+  for (;;) {
+    const receipt = await retryAsync(
+      () => provider.getTransactionReceipt(sent.hash), `${label} receipt`);
+    if (receipt) return receipt;
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`${label}: no receipt for ${sent.hash} after ${timeoutMs / 1000}s`);
+    }
+    await sleep(pollMs);
+  }
+}
+
 // ---------------------------------------------------------------- dry-run
 
 async function runDry(chainKey, rounds, opts) {
@@ -605,7 +627,7 @@ class VolumeRunner {
     const erc20 = new ethers.Contract(tokenAddress, ERC20_ABI, this.signer);
     const sent = await this.sendTx(`approve ${symbol}`, (nonce) =>
       erc20.approve(this.ammAddress, ethers.MaxUint256, this.txOverrides(nonce)));
-    const receipt = await sent.wait();
+    const receipt = await waitForReceipt(this.provider, sent, `approve ${symbol}`);
     const cost = txCost(receipt, sent);
     this.stats.gasTotalNative += cost;
     this.logger.log(txEntry({
@@ -800,7 +822,7 @@ class VolumeRunner {
           vol.baseIsNative
             ? this.txOverrides(nonce, { value: vol.roundSize })
             : this.txOverrides(nonce)));
-      const buyReceipt = await sentBuy.wait();
+      const buyReceipt = await waitForReceipt(this.provider, sentBuy, `round ${round} buy`);
       const buyCost = txCost(buyReceipt, sentBuy);
       this.stats.gasTotalNative += buyCost;
       if (buyReceipt.status !== 1) {
@@ -858,7 +880,7 @@ class VolumeRunner {
       const baseBefore = await retryAsync(() => this.baseBalance(), `round ${round} base balance (pre-sell)`);
       const sentSell = await this.sendTx(`round ${round} sell`, (nonce) =>
         this.amm.sell(decoReceived, minBaseOut, this.txOverrides(nonce)));
-      const sellReceipt = await sentSell.wait();
+      const sellReceipt = await waitForReceipt(this.provider, sentSell, `round ${round} sell`);
       const sellCost = txCost(sellReceipt, sentSell);
       this.stats.gasTotalNative += sellCost;
       if (sellReceipt.status !== 1) {
@@ -956,7 +978,7 @@ class VolumeRunner {
       const baseBefore = await retryAsync(() => this.baseBalance(), 'cleanup base balance (pre-sell)');
       const sent = await this.sendTx('cleanup sell', (nonce) =>
         this.amm.sell(leftover, minOut, this.txOverrides(nonce)));
-      const receipt = await sent.wait();
+      const receipt = await waitForReceipt(this.provider, sent, 'cleanup sell');
       const cost = txCost(receipt, sent);
       this.stats.gasTotalNative += cost;
       if (receipt.status !== 1) {
