@@ -1,0 +1,17 @@
+{
+  "name": "sniper",
+  "version": "1.0.0",
+  "description": "Testnet-only buy/sell sniper for deco burner wallet (Arc/Robinhood/LitVM)",
+  "main": "probe.js",
+  "scripts": {
+    "test": "node dryrun.js",
+    "start": "node sniper.js",
+    "dry-run": "node sniper.js --chain all --mode target --once"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ethers": "^6.17.0"
+  }
+}
