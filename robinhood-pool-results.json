@@ -1,0 +1,45 @@
+{
+  "chain": "robinhood",
+  "chainId": 46630,
+  "poolId": "0x0c6d73c11e075cd18082b5aae55828c76a3d2b31f2f3e06558d75bd58d0363f7",
+  "poolKey": {
+    "currency0": "0x0000000000000000000000000000000000000000",
+    "currency1": "0x5f1dF574015C9D044b4C9Ef658cD55aFcC13D783",
+    "fee": 3000,
+    "tickSpacing": 60,
+    "hooks": "0x0000000000000000000000000000000000000000"
+  },
+  "sqrtPriceX96": "457424009550099325341618706294905",
+  "tickLower": -887220,
+  "tickUpper": 887220,
+  "liquidity": "12112231297329158912",
+  "seedEth": "0.0021",
+  "seedDeco": "70000.0",
+  "steps": {
+    "initializePool": {
+      "txHash": "0x86b457ccdf5388df76e8de479715f6b11cc4ebcd2852260ba1e379e49aff7955",
+      "block": 154055404,
+      "gasUsed": "56279"
+    },
+    "mintPosition": {
+      "txHash": "0xa5287d3764e0c88f08b4821a066389ffc83a7205167509dc3662232f353c5187",
+      "block": 154055441,
+      "gasUsed": "372943"
+    }
+  },
+  "verification": {
+    "sqrtPriceX96": "457424009550099325341618706294905",
+    "tick": 173229,
+    "liquidity": "12112231297329158912",
+    "positionNftBalance": "1",
+    "positionTokenId": "1070742"
+  },
+  "balances": {
+    "ethBefore": "0.007207749990995738",
+    "ethAfter": "0.005103457770995738",
+    "decoBefore": "990000.0",
+    "decoAfter": "920070.000000000000009454",
+    "ethSpentTotal": "0.00210429222",
+    "decoSpentTotal": "69929.999999999999990546"
+  }
+}

@@ -3,9 +3,13 @@
 //
 // Pool: currency0 = native ETH (address 0), currency1 = DECO,
 // fee 3000 (0.3%), tickSpacing 60, hooks 0x0.
-// Initial price: 1 DECO = 0.00000003 ETH (3e-8), i.e. 100,000 DECO per
-// 0.003 ETH — the seed ratio sets the price. Full-range position
+// Initial price: 1 DECO = 0.00000003 ETH (3e-8), i.e. 70,000 DECO per
+// 0.0021 ETH — the seed ratio sets the price. Full-range position
 // (ticks -887220 / +887220).
+// Seed shrunk from the original 0.003 ETH / 100,000 DECO (2026-11-16
+// ~18:30 WIB): the burner held only 0.00721 ETH after the volume runs,
+// so 0.0021 / 70,000 keeps the same price while preserving the >=0.005
+// ETH reserve.
 //
 // Steps (each max 2 attempts):
 //   1. ERC20 approve DECO -> Permit2 (1,000,000 DECO)
@@ -13,12 +17,12 @@
 //   3. Permit2.approve DECO -> UniversalRouter (needed for later sells)
 //   4. PositionManager.initializePool(key, sqrtPriceX96)
 //   5. PositionManager.modifyLiquidities(MINT_POSITION + SETTLE_PAIR,
-//      msg.value 0.003 ETH)
+//      msg.value 0.0021 ETH)
 // Then verifies via StateView (slot0 + liquidity) and the position NFT.
 //
 // SAFETY: hard chain guard (46630 only, verified against the RPC before any
 // signing). The burner key is decrypted in memory only and never logged.
-// Budget: 0.003 ETH + 100,000 DECO seeded; >=0.005 ETH stays in reserve.
+// Budget: 0.0021 ETH + 70,000 DECO seeded; >=0.005 ETH stays in reserve.
 const { ethers } = require('ethers');
 const fs = require('fs');
 const path = require('path');
@@ -28,8 +32,8 @@ const { loadBurnerWallet } = require('./keystore');
 const v4 = require('./dex/v4');
 
 const CHAIN_ID = 46630;
-const SEED_ETH = ethers.parseEther('0.003');
-const SEED_DECO = ethers.parseEther('100000');
+const SEED_ETH = ethers.parseEther('0.0021');
+const SEED_DECO = ethers.parseEther('70000');
 const APPROVE_DECO = ethers.parseEther('1000000');
 const PERMIT2_EXPIRATION = 4102444800; // 2100-01-01
 const TICK_LOWER = -887220; // full range, multiple of 60

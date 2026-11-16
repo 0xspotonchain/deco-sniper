@@ -223,11 +223,36 @@ class ChainBot {
       ? () => v2.buildBuyTx(this.chain, this.actor, token, amountIn, this.args.slippage, BURNER)
       : () => v4.buildBuyTx(this.chain, this.actor, token, amountIn, this.args.slippage, BURNER,
           TRADING.v4Fee, TRADING.v4TickSpacing, TRADING.v4Hooks);
+    // Live: measure the actual tokens received (balance delta) so the sell
+    // later sells ONLY this position. The burner holds its ~920k DECO
+    // supply — selling the whole balance (the old sell() behavior) would
+    // dump it all into the pool. Same class of bug as the volume.js
+    // cleanup incident (2026-11-16); fixed here before the first live run.
+    let decoBefore = null;
+    if (!this.dryRun) {
+      try {
+        const erc20 = new ethers.Contract(token, v2.ERC20_ABI, this.provider);
+        decoBefore = await erc20.balanceOf(BURNER);
+      } catch (e) {
+        log(`  buy: pre-buy balance read failed (${e.message.slice(0, 120)}) — will fall back to the quoted output`);
+      }
+    }
     const res = await this.execute(`buy ${token.slice(0, 10)}…`, build);
+    let decoReceived = null;
+    if (!this.dryRun && decoBefore !== null) {
+      try {
+        const erc20 = new ethers.Contract(token, v2.ERC20_ABI, this.provider);
+        const decoAfter = await erc20.balanceOf(BURNER);
+        decoReceived = decoAfter - decoBefore;
+        log(`  buy: received ${fmt(decoReceived)} ${token.slice(0, 10)}… (quoted ${fmt(res.expectedOut ?? 0n)})`);
+      } catch (e) {
+        log(`  buy: post-buy balance read failed (${e.message.slice(0, 120)}) — will fall back to the quoted output`);
+      }
+    }
     const entryPrice = await this.priceOf(token);
     this.positions.set(token.toLowerCase(), {
       token, amountIn, expectedOut: res.expectedOut ?? null,
-      entryPrice, boughtAt: Date.now(), txHash: res.hash ?? null,
+      decoReceived, entryPrice, boughtAt: Date.now(), txHash: res.hash ?? null,
     });
     if (this.key === 'arc') this.spentUsdcArc += amountIn;
     else this.spentNative += amountIn;
@@ -239,16 +264,31 @@ class ChainBot {
     const pos = this.positions.get(token.toLowerCase());
     if (!pos) return null;
     log(`  SELL ${token} on ${this.chain.name} — ${reason}`);
-    // How much do we hold? In live mode read the real balance; in dry-run
-    // use the quoted buy output.
+    // How much do we sell? ONLY this position's tokens (measured at buy
+    // time, falling back to the quoted buy output). NEVER the whole wallet
+    // balance: the burner holds its ~920k DECO supply, and selling the
+    // balance would dump it all into the pool (fixed 2026-11-16 before
+    // the first live run — the old code sold balanceOf(BURNER)).
     let amountIn;
     if (this.dryRun) {
       amountIn = pos.expectedOut ?? 0n;
       if (amountIn === 0n) { log('  [dry-run] no quoted buy output to sell — skipping'); return null; }
     } else {
+      amountIn = pos.decoReceived ?? pos.expectedOut ?? 0n;
+      if (amountIn === 0n) {
+        log('  live: no recorded position size — refusing to sell blind');
+        this.positions.delete(token.toLowerCase());
+        return null;
+      }
       const erc20 = new ethers.Contract(token, v2.ERC20_ABI, this.provider);
-      amountIn = await erc20.balanceOf(BURNER);
-      if (amountIn === 0n) { log('  live balance is 0 — nothing to sell'); this.positions.delete(token.toLowerCase()); return null; }
+      const bal = await erc20.balanceOf(BURNER);
+      if (bal < amountIn) {
+        // Wallet holds less than the position (tokens moved out?) — sell
+        // what is there; this is bounded by the position size, never more.
+        log(`  live: balance ${fmt(bal)} < position size ${fmt(amountIn)} — selling the balance instead`);
+        amountIn = bal;
+      }
+      log(`  live: selling position size ${fmt(amountIn)} (wallet balance ${fmt(bal)})`);
     }
     // Allowance: V2 router / Permit2 (v4). Approve first if needed.
     if (this.chain.dex.type === 'v2') {
